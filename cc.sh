@@ -827,6 +827,10 @@ case "$mode" in
                 extend spack_flags_list SPACK_CXXFLAGS
                 preextend flags_list SPACK_TARGET_ARGS_CXX
                 ;;
+            HIP)
+                extend spack_flags_list SPACK_ALWAYS_HIPFLAGS
+                extend spack_flags_list SPACK_HIPFLAGS
+                ;;
             F)
                 preextend flags_list SPACK_TARGET_ARGS_FORTRAN
                 ;;
