@@ -369,7 +369,7 @@ case "$command" in
         ;;
     hip|spackhip)
         command="$SPACK_HIPCXX"
-        vdep="spack-hip"
+        vdep="hip-lang"
         comp="HIPCXX"
         lang_flags=HIP
         debug_flags="-g"
