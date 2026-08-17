@@ -305,6 +305,11 @@ command_from_argv0="${0##*/}"
 command="$command_from_argv0"
 
 _command_from_flags() {
+    # -x means "language" *except for* ld, so check if we are running
+    # ld and if so, we don't need to be looking for -x
+    case "$command_from_argv0" in
+        ld|ld.gold|ld.lld) return ;;
+    esac
     while [ $# -ne 0 ]; do
         arg="$1"
         shift
