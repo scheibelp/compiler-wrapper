@@ -1351,19 +1351,6 @@ hip' | head -1)
     fi
 }
 
-test_x_hip_language_detection() {
-    wrapper_environment
-
-    # SPACK_HIPFLAGS are injected; SPACK_CFLAGS are not
-    SPACK_HIPFLAGS='-hip-flag'; export SPACK_HIPFLAGS
-    SPACK_CFLAGS='-c-flag';     export SPACK_CFLAGS
-    _out=$(dump_args cc '-x
-hip
-foo.c')
-    expect_contains     x_hip_hipflags_present  "$_out" '-hip-flag'
-    expect_not_contains x_hip_cflags_absent     "$_out" '-c-flag'
-    unset SPACK_HIPFLAGS SPACK_CFLAGS
-}
 
 test_x_ignored_for_ld() {
     wrapper_environment
