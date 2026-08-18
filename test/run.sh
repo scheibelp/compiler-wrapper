@@ -470,6 +470,10 @@ baz.o
 -o
 foo
 -Wl,-rpath,foo'                      ld
+
+    expect_mode spackhip_ccld   spackhip ''           ccld
+    expect_mode spackhip_cc     spackhip '-c'         cc
+    expect_mode spackhip_vcheck spackhip '--version'  vcheck
 }
 
 test_expected_args() {
@@ -1373,17 +1377,6 @@ foo.o')
     fi
 }
 
-test_spackhip_argv0_modes() {
-    wrapper_environment
-
-    # spackhip with no special flags => ccld
-    expect_mode spackhip_ccld  spackhip ''        ccld
-    # -c => compile only
-    expect_mode spackhip_cc    spackhip '-c'      cc
-    # version flags => vcheck
-    expect_mode spackhip_vcheck spackhip '--version' vcheck
-}
-
 # ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
@@ -1436,7 +1429,6 @@ test_frandom_seed_filters_args
 test_add_debug_flags_validation
 test_x_hip_language_detection
 test_x_ignored_for_ld
-test_spackhip_argv0_modes
 '
 
 all_tests="$wrapper_tests $list_ops_tests"
