@@ -1351,7 +1351,6 @@ hip' | head -1)
     fi
 }
 
-
 test_x_ignored_for_ld() {
     wrapper_environment
 
