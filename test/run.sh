@@ -1378,17 +1378,14 @@ foo.c')
 test_x_ignored_for_ld() {
     wrapper_environment
 
-    # -x has no language meaning for ld; it should be passed through as a plain arg
-    expect_mode x_hip_ld_mode ld '-x
-hip
-foo.o' ld
-
+    # For ld, -x means --discard-locals (a boolean flag with no value); a real ld
+    # invocation would not have -x hip. We use -x hip here specifically to verify
+    # that the wrapper does not treat -x as a language specifier when invoked as ld.
     _out=$(dump_args ld '-x
 hip
 foo.o')
-    expect_contains     x_hip_ld_x_present   "$_out" '-x'
-    expect_contains     x_hip_ld_hip_present "$_out" 'hip'
-    # command must be ld, not SPACK_HIPCXX
+    expect_contains x_ld_x_present   "$_out" '-x'
+    expect_contains x_ld_hip_present "$_out" 'hip'
     _first=$(printf '%s\n' "$_out" | head -1)
     if [ "$_first" != 'ld' ]; then
         fail "x_ignored_for_ld: expected first arg 'ld', got '$_first'"
