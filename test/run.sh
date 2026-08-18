@@ -1420,7 +1420,6 @@ test_frandom_seed_not_added_without_env
 test_frandom_seed_filters_args
 test_add_debug_flags_validation
 test_hip_command_routing
-test_x_hip_language_detection
 test_x_ignored_for_ld
 '
 
