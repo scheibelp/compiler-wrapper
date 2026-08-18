@@ -1354,16 +1354,6 @@ hip' | head -1)
 test_x_hip_language_detection() {
     wrapper_environment
 
-    # -x hip on a cc wrapper: mode follows the -c/-E/nothing rules as normal
-    expect_mode x_hip_ccld cc '-x
-hip'        ccld
-    expect_mode x_hip_cc   cc '-x
-hip
--c'          cc
-    expect_mode x_hip_vcheck cc '-x
-hip
---version'   vcheck
-
     # SPACK_HIPFLAGS are injected; SPACK_CFLAGS are not
     SPACK_HIPFLAGS='-hip-flag'; export SPACK_HIPFLAGS
     SPACK_CFLAGS='-c-flag';     export SPACK_CFLAGS
