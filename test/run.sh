@@ -251,9 +251,11 @@ wrapper_flags() {
     SPACK_CFLAGS='-Wall'
     SPACK_CXXFLAGS='-Werror'
     SPACK_FFLAGS='-w'
+    SPACK_HIPFLAGS='-fgpu-rdc'
     SPACK_LDFLAGS='-Wl,--gc-sections -L foo'
     SPACK_LDLIBS='-lfoo'
-    export SPACK_CPPFLAGS SPACK_CFLAGS SPACK_CXXFLAGS SPACK_FFLAGS SPACK_LDFLAGS SPACK_LDLIBS
+    export SPACK_CPPFLAGS SPACK_CFLAGS SPACK_CXXFLAGS SPACK_FFLAGS SPACK_HIPFLAGS \
+        SPACK_LDFLAGS SPACK_LDLIBS
 }
 
 # ----------------
@@ -376,6 +378,7 @@ EOF
 
 SPACK_CFLAGS_LINES='-Wall'
 SPACK_FFLAGS_LINES='-w'
+SPACK_HIPFLAGS_LINES='-fgpu-rdc'
 SPACK_LDLIBS_LINES='-lfoo'
 
 LHEADERPAD='-Wl,-headerpad_max_install_names'
@@ -804,6 +807,13 @@ test_expected_args_with_flags() {
         "$TEST_ARGS_NO_PATHS" "$SPACK_FFLAGS_LINES" "$SPACK_CPPFLAGS_LINES" \
         "-Wl,--gc-sections" "$SPACK_LDLIBS_LINES")
     expect_args fc_flags fc "$TEST_ARGS" "$_exp"
+
+    # hip_flags (no target args; CPPFLAGS + HIPFLAGS applied; CFLAGS/CXXFLAGS absent)
+    _exp=$(concat "$REAL_CC" "$TEST_INCLUDE_PATHS" "-Lfoo" \
+        "$TEST_LIBRARY_PATHS" "$DISABLE_NEW_DTAGS_WL" "$TEST_WL_RPATHS" \
+        "$TEST_ARGS_NO_PATHS" "$SPACK_CPPFLAGS_LINES" "$SPACK_HIPFLAGS_LINES" \
+        '-Wl,--gc-sections' "$SPACK_LDLIBS_LINES")
+    expect_args hip_flags spackhip "$TEST_ARGS" "$_exp"
 
     # always_cflags
     SPACK_ALWAYS_CFLAGS='-always1 -always2'; export SPACK_ALWAYS_CFLAGS
