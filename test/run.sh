@@ -1333,6 +1333,24 @@ test_add_debug_flags_validation() {
 # HIP tests
 # ---------------------------------------------------------------------------
 
+test_hip_command_routing() {
+    wrapper_environment
+    SPACK_HIPCXX=/bin/myhipcxx; export SPACK_HIPCXX
+
+    # spackhip argv0 -> SPACK_HIPCXX, not SPACK_CC
+    _first=$(dump_args spackhip '' | head -1)
+    if [ "$_first" != '/bin/myhipcxx' ]; then
+        fail "spackhip_command: expected /bin/myhipcxx, got '$_first'"
+    fi
+
+    # -x hip on cc wrapper -> SPACK_HIPCXX, not SPACK_CC
+    _first=$(dump_args cc '-x
+hip' | head -1)
+    if [ "$_first" != '/bin/myhipcxx' ]; then
+        fail "x_hip_command: expected /bin/myhipcxx, got '$_first'"
+    fi
+}
+
 test_x_hip_language_detection() {
     wrapper_environment
 
@@ -1427,6 +1445,7 @@ test_spack_managed_dirs_are_prioritized
 test_frandom_seed_not_added_without_env
 test_frandom_seed_filters_args
 test_add_debug_flags_validation
+test_hip_command_routing
 test_x_hip_language_detection
 test_x_ignored_for_ld
 '
