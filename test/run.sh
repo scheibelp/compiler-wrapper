@@ -25,7 +25,7 @@ fi
 
 WRAPPER_DIR=$(mktemp -d)
 
-for name in cc c++ cpp fc ld; do
+for name in cc c++ cpp fc ld spackhip; do
     ln -s "$CC_SH" "$WRAPPER_DIR/$name"
 done
 
@@ -181,6 +181,7 @@ SPACK_SYSTEM_DIRS_VALUE='"/"|"//"|"/bin"|"/bin/"|"/bin64"|"/bin64/"|"/include"|"
 EXTRA_VARS='
 SPACK_CPPFLAGS SPACK_CFLAGS SPACK_CXXFLAGS SPACK_FFLAGS SPACK_LDFLAGS SPACK_LDLIBS
 SPACK_ALWAYS_CPPFLAGS SPACK_ALWAYS_CFLAGS SPACK_ALWAYS_CXXFLAGS SPACK_ALWAYS_FFLAGS
+SPACK_HIPFLAGS SPACK_ALWAYS_HIPFLAGS SPACK_ALWAYS_HIPCXXFLAGS
 SPACK_INCLUDE_DIRS SPACK_LINK_DIRS SPACK_RPATH_DIRS
 SPACK_STORE_INCLUDE_DIRS SPACK_STORE_LINK_DIRS SPACK_STORE_RPATH_DIRS
 SPACK_COMPILER_EXTRA_RPATHS SPACK_COMPILER_IMPLICIT_RPATHS
@@ -195,6 +196,7 @@ wrapper_environment() {
     SPACK_CXX=$REAL_CC
     SPACK_FC=$REAL_CC
     SPACK_F77=$REAL_CC
+    SPACK_HIPCXX=$REAL_CC
     SPACK_PREFIX=/spack-test-prefix
     # shellcheck disable=SC2209  # literal string "test", not the command
     SPACK_COMPILER_WRAPPER_PATH=test
@@ -207,6 +209,7 @@ wrapper_environment() {
     SPACK_CXX_RPATH_ARG='-Wl,-rpath,'
     SPACK_F77_RPATH_ARG='-Wl,-rpath,'
     SPACK_FC_RPATH_ARG='-Wl,-rpath,'
+    SPACK_HIPCXX_RPATH_ARG='-Wl,-rpath,'
     SPACK_TARGET_ARGS_CC='-march=znver2 -mtune=znver2'
     SPACK_TARGET_ARGS_CXX='-march=znver2 -mtune=znver2'
     SPACK_TARGET_ARGS_FORTRAN='-march=znver4 -mtune=znver4'
@@ -214,18 +217,21 @@ wrapper_environment() {
     SPACK_CXX_LINKER_ARG='-Wl,'
     SPACK_FC_LINKER_ARG='-Wl,'
     SPACK_F77_LINKER_ARG='-Wl,'
+    SPACK_HIPCXX_LINKER_ARG='-Wl,'
     SPACK_DTAGS_TO_ADD='--disable-new-dtags'
     SPACK_DTAGS_TO_STRIP='--enable-new-dtags'
     SPACK_COMPILER_FLAGS_KEEP=''
     SPACK_COMPILER_FLAGS_REPLACE='-Werror*|'
 
     # shellcheck disable=SC2090
-    export SPACK_CC SPACK_CXX SPACK_FC SPACK_F77 SPACK_PREFIX \
+    export SPACK_CC SPACK_CXX SPACK_FC SPACK_F77 SPACK_HIPCXX SPACK_PREFIX \
         SPACK_COMPILER_WRAPPER_PATH SPACK_DEBUG_LOG_DIR SPACK_DEBUG_LOG_ID \
         SPACK_SHORT_SPEC SPACK_SYSTEM_DIRS SPACK_MANAGED_DIRS \
         SPACK_CC_RPATH_ARG SPACK_CXX_RPATH_ARG SPACK_F77_RPATH_ARG SPACK_FC_RPATH_ARG \
+        SPACK_HIPCXX_RPATH_ARG \
         SPACK_TARGET_ARGS_CC SPACK_TARGET_ARGS_CXX SPACK_TARGET_ARGS_FORTRAN \
         SPACK_CC_LINKER_ARG SPACK_CXX_LINKER_ARG SPACK_FC_LINKER_ARG SPACK_F77_LINKER_ARG \
+        SPACK_HIPCXX_LINKER_ARG \
         SPACK_DTAGS_TO_ADD SPACK_DTAGS_TO_STRIP \
         SPACK_COMPILER_FLAGS_KEEP SPACK_COMPILER_FLAGS_REPLACE
 
@@ -1310,6 +1316,65 @@ test_add_debug_flags_validation() {
 }
 
 # ---------------------------------------------------------------------------
+# HIP tests
+# ---------------------------------------------------------------------------
+
+test_x_hip_language_detection() {
+    wrapper_environment
+
+    # -x hip on a cc wrapper: mode follows the -c/-E/nothing rules as normal
+    expect_mode x_hip_ccld cc '-x
+hip'        ccld
+    expect_mode x_hip_cc   cc '-x
+hip
+-c'          cc
+    expect_mode x_hip_vcheck cc '-x
+hip
+--version'   vcheck
+
+    # SPACK_HIPFLAGS are injected; SPACK_CFLAGS are not
+    SPACK_HIPFLAGS='-hip-flag'; export SPACK_HIPFLAGS
+    SPACK_CFLAGS='-c-flag';     export SPACK_CFLAGS
+    _out=$(dump_args cc '-x
+hip
+foo.c')
+    expect_contains     x_hip_hipflags_present  "$_out" '-hip-flag'
+    expect_not_contains x_hip_cflags_absent     "$_out" '-c-flag'
+    unset SPACK_HIPFLAGS SPACK_CFLAGS
+}
+
+test_x_ignored_for_ld() {
+    wrapper_environment
+
+    # -x has no language meaning for ld; it should be passed through as a plain arg
+    expect_mode x_hip_ld_mode ld '-x
+hip
+foo.o' ld
+
+    _out=$(dump_args ld '-x
+hip
+foo.o')
+    expect_contains     x_hip_ld_x_present   "$_out" '-x'
+    expect_contains     x_hip_ld_hip_present "$_out" 'hip'
+    # command must be ld, not SPACK_HIPCXX
+    _first=$(printf '%s\n' "$_out" | head -1)
+    if [ "$_first" != 'ld' ]; then
+        fail "x_ignored_for_ld: expected first arg 'ld', got '$_first'"
+    fi
+}
+
+test_spackhip_argv0_modes() {
+    wrapper_environment
+
+    # spackhip with no special flags => ccld
+    expect_mode spackhip_ccld  spackhip ''        ccld
+    # -c => compile only
+    expect_mode spackhip_cc    spackhip '-c'      cc
+    # version flags => vcheck
+    expect_mode spackhip_vcheck spackhip '--version' vcheck
+}
+
+# ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
 
@@ -1359,6 +1424,9 @@ test_spack_managed_dirs_are_prioritized
 test_frandom_seed_not_added_without_env
 test_frandom_seed_filters_args
 test_add_debug_flags_validation
+test_x_hip_language_detection
+test_x_ignored_for_ld
+test_spackhip_argv0_modes
 '
 
 all_tests="$wrapper_tests $list_ops_tests"
