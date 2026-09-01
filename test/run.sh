@@ -129,6 +129,15 @@ expect_mode() {
     fi
 }
 
+# expect_command LABEL WRAPPER ARGS_STRING EXPECTED_ARGV0
+expect_command() {
+    _label="$1"; _wrapper="$2"; _args="$3"; _expected="$4"
+    _actual=$(dump_args "$_wrapper" "$_args" | head -1)
+    if [ "$_actual" != "$_expected" ]; then
+        fail "$_label: expected '$_expected', got '$_actual'"
+    fi
+}
+
 # expect_contains LABEL ACTUAL NEEDLE -- line-wise membership
 expect_contains() {
     _label="$1"; _actual="$2"; _needle="$3"
@@ -1347,15 +1356,6 @@ test_hip_command_routing() {
 # ---------------------------------------------------------------------------
 # -x / --language handling
 # ---------------------------------------------------------------------------
-
-# expect_command LABEL WRAPPER ARGS_STRING EXPECTED_ARGV0
-expect_command() {
-    _label="$1"; _wrapper="$2"; _args="$3"; _expected="$4"
-    _actual=$(dump_args "$_wrapper" "$_args" | head -1)
-    if [ "$_actual" != "$_expected" ]; then
-        fail "$_label: expected '$_expected', got '$_actual'"
-    fi
-}
 
 test_x_language_dispatch() {
     # Make sure -xlanguage dispatches to the appropriate underlying compiler
