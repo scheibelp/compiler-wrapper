@@ -25,7 +25,7 @@ fi
 
 WRAPPER_DIR=$(mktemp -d)
 
-for name in cc c++ cpp fc ld spackhip; do
+for name in cc c++ cpp fc ld ld.gold ld.lld spackhip; do
     ln -s "$CC_SH" "$WRAPPER_DIR/$name"
 done
 
@@ -1369,6 +1369,150 @@ foo.o')
 }
 
 # ---------------------------------------------------------------------------
+# -x / --language handling
+# ---------------------------------------------------------------------------
+
+# expect_command LABEL WRAPPER ARGS_STRING EXPECTED_ARGV0
+expect_command() {
+    _label="$1"; _wrapper="$2"; _args="$3"; _expected="$4"
+    _actual=$(dump_args "$_wrapper" "$_args" | head -1)
+    if [ "$_actual" != "$_expected" ]; then
+        fail "$_label: expected '$_expected', got '$_actual'"
+    fi
+}
+
+test_x_language_spellings() {
+    wrapper_environment
+    SPACK_CXX=/bin/mycxx; SPACK_FC=/bin/myfc
+    SPACK_F77=/bin/myf77; SPACK_HIPCXX=/bin/myhipcxx
+    export SPACK_CXX SPACK_FC SPACK_F77 SPACK_HIPCXX
+
+    # every spelling gcc and clang accept for the language selector
+    expect_command x_joined     cc '-xc++
+foo.cc'                                  /bin/mycxx
+    expect_command x_separate   cc '-x
+c++
+foo.cc'                                  /bin/mycxx
+    expect_command x_long_eq    cc '--language=c++
+foo.cc'                                  /bin/mycxx
+    expect_command x_long_sep   cc '--language
+c++
+foo.cc'                                  /bin/mycxx
+
+    # every language in the map, from a wrapper of a different language
+    expect_command x_to_c       c++ '-x
+c
+foo.c'                                   "$REAL_CC"
+    expect_command x_to_f77     cc  '-x
+f77
+foo.f'                                   /bin/myf77
+    expect_command x_to_f95     cc  '-x
+f95
+foo.f90'                                 /bin/myfc
+    expect_command x_to_hip     cc  '-xhip
+foo.hip'                                 /bin/myhipcxx
+
+    # last -x wins
+    expect_command x_last_wins  cc '-x
+c++
+foo.cc
+-x
+c
+bar.c'                                   "$REAL_CC"
+}
+
+test_x_non_language_values() {
+    wrapper_environment
+
+    # -x* also matches flags that are not language selectors (Intel arch
+    # flags); unknown languages must fall back to the argv0 compiler.
+    expect_command x_intel_host    cc '-xHost
+foo.c'                                   "$REAL_CC"
+    expect_command x_intel_avx     cc '-xCORE-AVX2
+foo.c'                                   "$REAL_CC"
+    expect_command x_none          cc '-x
+none
+foo.c'                                   "$REAL_CC"
+    expect_command x_asm_with_cpp  cc '-x
+assembler-with-cpp
+foo.S'                                   "$REAL_CC"
+}
+
+test_x_without_value() {
+    wrapper_environment
+    SPACK_TEST_COMMAND=dump-args; export SPACK_TEST_COMMAND
+
+    # a trailing -x/--language has no value to consume: the wrapper must not
+    # shift past the end of the argument list
+    for _flag in -x --language; do
+        _out=$("$WRAPPER_DIR/cc" -c foo.c "$_flag" 2>&1)
+        _rc=$?
+        if [ "$_rc" -ne 0 ]; then
+            fail "x_without_value: '$_flag' as last arg exited $_rc: $_out"
+        fi
+    done
+    unset SPACK_TEST_COMMAND
+}
+
+test_x_is_not_a_language_for_cpp() {
+    wrapper_environment
+
+    # cpp accepts -x, but selecting a language must not turn preprocessing
+    # into a compile+link of $SPACK_CC
+    expect_mode    cpp_x_mode cpp '-x
+c
+foo.F90'                                 cpp
+    expect_command cpp_x_cmd  cpp '-x
+c
+foo.F90'                                 cpp
+}
+
+test_x_is_not_a_language_for_ld() {
+    wrapper_environment
+
+    # for every linker we wrap, -x is --discard-all and takes no value
+    for _ld in ld ld.gold ld.lld; do
+        _out=$(dump_args "$_ld" '-x
+hip
+foo.o')
+        expect_contains "${_ld}_x_present"   "$_out" '-x'
+        expect_contains "${_ld}_hip_present" "$_out" 'hip'
+        expect_command  "${_ld}_command" "$_ld" '-x
+hip
+foo.o'                                   "$_ld"
+    done
+}
+
+test_hip_always_flags() {
+    wrapper_environment
+    SPACK_ALWAYS_HIPFLAGS='-always1 -always2'; export SPACK_ALWAYS_HIPFLAGS
+
+    # applied on the compile line ...
+    _out=$(dump_args spackhip '-c
+foo.hip')
+    expect_contains hip_always_compile_1 "$_out" '-always1'
+    expect_contains hip_always_compile_2 "$_out" '-always2'
+
+    # ... and on version checks, like every other language
+    _args='-v
+--cmd-line-v-opt'
+    _exp=$(concat "$REAL_CC" "-always1" "-always2" "-v" "--cmd-line-v-opt")
+    expect_args hip_always_vcheck spackhip "$_args" "$_exp"
+
+    unset SPACK_ALWAYS_HIPFLAGS
+}
+
+test_x_hip_vcheck() {
+    wrapper_environment
+    SPACK_HIPCXX=/bin/myhipcxx; export SPACK_HIPCXX
+
+    expect_mode    x_hip_vcheck_mode cc '-xhip
+--version'                               vcheck
+    expect_command x_hip_vcheck_cmd  cc '-xhip
+--version'                               /bin/myhipcxx
+}
+
+# ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
 
@@ -1420,6 +1564,13 @@ test_frandom_seed_filters_args
 test_add_debug_flags_validation
 test_hip_command_routing
 test_x_ignored_for_ld
+test_x_language_spellings
+test_x_non_language_values
+test_x_without_value
+test_x_is_not_a_language_for_cpp
+test_x_is_not_a_language_for_ld
+test_hip_always_flags
+test_x_hip_vcheck
 '
 
 all_tests="$wrapper_tests $list_ops_tests"
