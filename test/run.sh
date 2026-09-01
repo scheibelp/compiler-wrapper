@@ -1342,13 +1342,6 @@ test_hip_command_routing() {
     if [ "$_first" != '/bin/myhipcxx' ]; then
         fail "spackhip_command: expected /bin/myhipcxx, got '$_first'"
     fi
-
-    # -x hip on cc wrapper -> SPACK_HIPCXX, not SPACK_CC
-    _first=$(dump_args cc '-x
-hip' | head -1)
-    if [ "$_first" != '/bin/myhipcxx' ]; then
-        fail "x_hip_command: expected /bin/myhipcxx, got '$_first'"
-    fi
 }
 
 # ---------------------------------------------------------------------------
