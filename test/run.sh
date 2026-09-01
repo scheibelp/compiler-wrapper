@@ -1357,7 +1357,8 @@ expect_command() {
     fi
 }
 
-test_x_language_spellings() {
+test_x_language_dispatch() {
+    # Make sure -xlanguage dispatches to the appropriate underlying compiler
     wrapper_environment
     SPACK_CXX=/bin/mycxx; SPACK_FC=/bin/myfc
     SPACK_F77=/bin/myf77; SPACK_HIPCXX=/bin/myhipcxx
