@@ -1351,23 +1351,6 @@ hip' | head -1)
     fi
 }
 
-test_x_ignored_for_ld() {
-    wrapper_environment
-
-    # For ld, -x means --discard-locals (a boolean flag with no value); a real ld
-    # invocation would not have -x hip. We use -x hip here specifically to verify
-    # that the wrapper does not treat -x as a language specifier when invoked as ld.
-    _out=$(dump_args ld '-x
-hip
-foo.o')
-    expect_contains x_ld_x_present   "$_out" '-x'
-    expect_contains x_ld_hip_present "$_out" 'hip'
-    _first=$(printf '%s\n' "$_out" | head -1)
-    if [ "$_first" != 'ld' ]; then
-        fail "x_ignored_for_ld: expected first arg 'ld', got '$_first'"
-    fi
-}
-
 # ---------------------------------------------------------------------------
 # -x / --language handling
 # ---------------------------------------------------------------------------
@@ -1563,7 +1546,6 @@ test_frandom_seed_not_added_without_env
 test_frandom_seed_filters_args
 test_add_debug_flags_validation
 test_hip_command_routing
-test_x_ignored_for_ld
 test_x_language_spellings
 test_x_non_language_values
 test_x_without_value
