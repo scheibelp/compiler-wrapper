@@ -1482,8 +1482,10 @@ test_x_hip_vcheck() {
     wrapper_environment
     SPACK_HIPCXX=/bin/myhipcxx; export SPACK_HIPCXX
 
+    # Make sure -xhip does not change the mode from vcheck
     expect_mode    x_hip_vcheck_mode cc '-xhip
 --version'                               vcheck
+    # Make sure --version still chooses SPACK_HIPCXX when setting -xhip
     expect_command x_hip_vcheck_cmd  cc '-xhip
 --version'                               /bin/myhipcxx
 }
