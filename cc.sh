@@ -301,20 +301,19 @@ debug_flags=""
 comp="CC"
 vcheck_flags=""
 
-command_from_argv0="${0##*/}"
-command="$command_from_argv0"
+command="${0##*/}"
 
+# -x/--language overrides the language implied by argv0.  Note that this is
+# only applied for compiler drivers: for ld, -x means --discard-all, and for
+# cpp, changing the language must not turn preprocessing into compilation.
 _command_from_flags() {
-    # -x means "language" *except for* ld, so check if we are running
-    # ld and if so, we don't need to be looking for -x
-    case "$command_from_argv0" in
-        ld|ld.gold|ld.lld) return ;;
-    esac
+    _lang=""
     while [ $# -ne 0 ]; do
         arg="$1"
         shift
         case "$arg" in
             -x|--language)
+                [ $# -ne 0 ] || break
                 _lang="$1"
                 shift ;;
             -x*)
@@ -328,58 +327,11 @@ _command_from_flags() {
     case "$_lang" in
         c) command=cc ;;
         c++|f77|f95|hip) command="$_lang" ;;
-        *) command="$command_from_argv0" ;;  # drop unknown languages
+        # anything else: keep the language implied by argv0
     esac
 }
 
-_command_from_flags "$@"
-
 case "$command" in
-    cpp)
-        mode=cpp
-        debug_flags="-g"
-        vcheck_flags="${SPACK_ALWAYS_CPPFLAGS}"
-        ;;
-    cc|c89|c99|gcc|clang|armclang|icc|icx|pgcc|nvc|xlc|xlc_r|fcc|amdclang|cl.exe|craycc)
-        command="$SPACK_CC"
-        vdep=c
-        comp="CC"
-        lang_flags=C
-        debug_flags="-g"
-        vcheck_flags="${SPACK_ALWAYS_CFLAGS}"
-        ;;
-    c++|CC|g++|clang++|armclang++|icpc|icpx|pgc++|nvc++|xlc++|xlc++_r|FCC|amdclang++|crayCC)
-        command="$SPACK_CXX"
-        vdep=cxx
-        comp="CXX"
-        lang_flags=CXX
-        debug_flags="-g"
-        vcheck_flags="${SPACK_ALWAYS_CXXFLAGS}"
-        ;;
-    ftn|f90|fc|f95|gfortran|flang|armflang|ifort|ifx|pgfortran|nvfortran|xlf90|xlf90_r|nagfor|frt|amdflang|crayftn)
-        command="$SPACK_FC"
-        vdep=fortran
-        comp="FC"
-        lang_flags=F
-        debug_flags="-g"
-        vcheck_flags="${SPACK_ALWAYS_FFLAGS}"
-        ;;
-    f77|xlf|xlf_r|pgf77)
-        command="$SPACK_F77"
-        vdep=fortran
-        comp="F77"
-        lang_flags=F
-        debug_flags="-g"
-        vcheck_flags="${SPACK_ALWAYS_FFLAGS}"
-        ;;
-    hip|spackhip)
-        command="$SPACK_HIPCXX"
-        vdep="hip-lang"
-        comp="HIPCXX"
-        lang_flags=HIP
-        debug_flags="-g"
-        vcheck_flags="${SPACK_ALWAYS_HIPCXXFLAGS}"
-        ;;
     ld|ld.gold|ld.lld)
         mode=ld
         if [ -z "$SPACK_CC_RPATH_ARG" ]; then
@@ -392,8 +344,58 @@ case "$command" in
 	        fi
         fi
         ;;
+    cpp)
+        mode=cpp
+        debug_flags="-g"
+        vcheck_flags="${SPACK_ALWAYS_CPPFLAGS}"
+        ;;
     *)
-        die "Unknown compiler: $command"
+        _command_from_flags "$@"
+        case "$command" in
+            cc|c89|c99|gcc|clang|armclang|icc|icx|pgcc|nvc|xlc|xlc_r|fcc|amdclang|cl.exe|craycc)
+                command="$SPACK_CC"
+                vdep=c
+                comp="CC"
+                lang_flags=C
+                debug_flags="-g"
+                vcheck_flags="${SPACK_ALWAYS_CFLAGS}"
+                ;;
+            c++|CC|g++|clang++|armclang++|icpc|icpx|pgc++|nvc++|xlc++|xlc++_r|FCC|amdclang++|crayCC)
+                command="$SPACK_CXX"
+                vdep=cxx
+                comp="CXX"
+                lang_flags=CXX
+                debug_flags="-g"
+                vcheck_flags="${SPACK_ALWAYS_CXXFLAGS}"
+                ;;
+            ftn|f90|fc|f95|gfortran|flang|armflang|ifort|ifx|pgfortran|nvfortran|xlf90|xlf90_r|nagfor|frt|amdflang|crayftn)
+                command="$SPACK_FC"
+                vdep=fortran
+                comp="FC"
+                lang_flags=F
+                debug_flags="-g"
+                vcheck_flags="${SPACK_ALWAYS_FFLAGS}"
+                ;;
+            f77|xlf|xlf_r|pgf77)
+                command="$SPACK_F77"
+                vdep=fortran
+                comp="F77"
+                lang_flags=F
+                debug_flags="-g"
+                vcheck_flags="${SPACK_ALWAYS_FFLAGS}"
+                ;;
+            hip|spackhip)
+                command="$SPACK_HIPCXX"
+                vdep="hip-lang"
+                comp="HIPCXX"
+                lang_flags=HIP
+                debug_flags="-g"
+                vcheck_flags="${SPACK_ALWAYS_HIPFLAGS}"
+                ;;
+            *)
+                die "Unknown compiler: $command"
+                ;;
+        esac
         ;;
 esac
 
