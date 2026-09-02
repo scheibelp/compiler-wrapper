@@ -1431,7 +1431,7 @@ test_x_without_value() {
     unset SPACK_TEST_COMMAND
 }
 
-test_x_is_not_a_language_for_cpp() {
+test_cpp_stays_cpp_with_x() {
     wrapper_environment
 
     # cpp accepts -x, but selecting a language must not turn preprocessing
@@ -1545,7 +1545,7 @@ test_hip_command_routing
 test_x_language_spellings
 test_x_non_language_values
 test_x_without_value
-test_x_is_not_a_language_for_cpp
+test_cpp_stays_cpp_with_x
 test_x_is_not_a_language_for_ld
 test_hip_always_flags
 test_x_hip_vcheck
