@@ -320,7 +320,7 @@ _command_from_flags() {
                 _lang="${arg#-x}" ;;
             --language=*)
                 _lang="${arg#--language=}" ;;
-            *) continue ;;
+            # we're only looking for lang args here: ignore everything else
         esac
     done
 
