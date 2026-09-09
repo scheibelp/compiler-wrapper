@@ -1455,10 +1455,8 @@ test_hip_always_flags() {
     SPACK_ALWAYS_HIPFLAGS='-always1 -always2'; export SPACK_ALWAYS_HIPFLAGS
 
     # applied on the compile line ...
-    _out=$(dump_args spackhip '-c
-foo.hip')
-    expect_contains hip_always_compile_1 "$_out" '-always1'
-    expect_contains hip_always_compile_2 "$_out" '-always2'
+    expect_args hip_always_compile spackhip '-c
+foo.hip'                                 "$(concat "$REAL_CC" -c foo.hip -always1 -always2)"
 
     # ... and on version checks, like every other language
     _args='-v
