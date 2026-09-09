@@ -1414,18 +1414,15 @@ foo.S'                                   "$REAL_CC"
 
 test_x_without_value() {
     wrapper_environment
-    SPACK_TEST_COMMAND=dump-args; export SPACK_TEST_COMMAND
 
     # a trailing -x/--language has no value to consume: the wrapper must not
-    # shift past the end of the argument list
-    for _flag in -x --language; do
-        _out=$("$WRAPPER_DIR/cc" -c foo.c "$_flag" 2>&1)
-        _rc=$?
-        if [ "$_rc" -ne 0 ]; then
-            fail "x_without_value: '$_flag' as last arg exited $_rc: $_out"
-        fi
-    done
-    unset SPACK_TEST_COMMAND
+    # shift past the end of the argument list, and falls back to argv0
+    expect_command x_trailing        cc '-c
+foo.c
+-x'                                      "$REAL_CC"
+    expect_command language_trailing cc '-c
+foo.c
+--language'                              "$REAL_CC"
 }
 
 test_cpp_stays_cpp_with_x() {
