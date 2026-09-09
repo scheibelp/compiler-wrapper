@@ -1542,7 +1542,7 @@ test_frandom_seed_not_added_without_env
 test_frandom_seed_filters_args
 test_add_debug_flags_validation
 test_hip_command_routing
-test_x_language_spellings
+test_x_language_dispatch
 test_x_non_language_values
 test_x_without_value
 test_cpp_stays_cpp_with_x
@@ -1561,7 +1561,9 @@ fi
 
 for t in $tests_to_run; do
     start_test "$t"
-    if is_list_ops_test "$t"; then
+    if ! command -v "$t" >/dev/null 2>&1; then
+        fail "test function '$t' is not defined"
+    elif is_list_ops_test "$t"; then
         set +u; "$t"; set -u
     else
         "$t"
