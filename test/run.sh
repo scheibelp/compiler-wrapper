@@ -1347,10 +1347,7 @@ test_hip_command_routing() {
     SPACK_HIPCXX=/bin/myhipcxx; export SPACK_HIPCXX
 
     # spackhip argv0 -> SPACK_HIPCXX, not SPACK_CC
-    _first=$(dump_args spackhip '' | head -1)
-    if [ "$_first" != '/bin/myhipcxx' ]; then
-        fail "spackhip_command: expected /bin/myhipcxx, got '$_first'"
-    fi
+    expect_command spackhip_command spackhip '' /bin/myhipcxx
 }
 
 # ---------------------------------------------------------------------------
