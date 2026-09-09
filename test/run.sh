@@ -1441,16 +1441,12 @@ foo.F90'                                 cpp
 test_x_is_not_a_language_for_ld() {
     wrapper_environment
 
-    # for every linker we wrap, -x is --discard-all and takes no value
+    # for every linker we wrap, -x is --discard-all and takes no value: it should
+    # not change the mode/command dispatched
     for _ld in ld ld.gold ld.lld; do
-        _out=$(dump_args "$_ld" '-x
+        expect_args "${_ld}_x" "$_ld" '-x
 hip
-foo.o')
-        expect_contains "${_ld}_x_present"   "$_out" '-x'
-        expect_contains "${_ld}_hip_present" "$_out" 'hip'
-        expect_command  "${_ld}_command" "$_ld" '-x
-hip
-foo.o'                                   "$_ld"
+foo.o'                                   "$(concat "$_ld" "$DISABLE_NEW_DTAGS" -x hip foo.o)"
     done
 }
 
